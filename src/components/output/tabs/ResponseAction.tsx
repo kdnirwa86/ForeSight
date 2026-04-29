@@ -17,172 +17,80 @@ import {
   Clock,
   Zap,
 } from "lucide-react";
+import type { CategoryType } from "../OutputDashboard";
+import type { StoredConfig } from "@/lib/types";
+import {
+  buildResponseLevers,
+  buildActionPlan,
+  detectCatGroup,
+  DEFAULT_COMPETITORS,
+} from "@/lib/dynamicEvents";
 
-const RESPONSE_LEVERS = [
-  {
-    id: "product",
-    title: "1. PRODUCT & INNOVATION",
-    icon: Package,
-    color: "bg-blue-50 border-blue-200",
-    headerColor: "bg-blue-600",
-    options: [
-      {
-        id: "A",
-        name: "Accelerate low-sugar variant launch",
-        timeline: "90 days",
-        effort: "High",
-        impact: "High",
-        effortColor: "bg-red-100 text-red-700",
-        impactColor: "bg-green-100 text-green-700",
-      },
-      {
-        id: "B",
-        name: "Reformulate existing SKU with clean-label ingredients",
-        timeline: "60 days",
-        effort: "Medium",
-        impact: "High",
-        effortColor: "bg-yellow-100 text-yellow-700",
-        impactColor: "bg-green-100 text-green-700",
-      },
-      {
-        id: "C",
-        name: "Launch limited-edition 'health halo' variant for trial",
-        timeline: "45 days",
-        effort: "Low",
-        impact: "Medium",
-        effortColor: "bg-green-100 text-green-700",
-        impactColor: "bg-yellow-100 text-yellow-700",
-      },
-    ],
-  },
-  {
-    id: "pricing",
-    title: "2. PRICING & PROMOTION",
-    icon: DollarSign,
-    color: "bg-green-50 border-green-200",
-    headerColor: "bg-green-600",
-    options: [
-      {
-        id: "A",
-        name: "Introduce bundle pricing in Tier 1 cities (pack of 3 + 1 free)",
-        timeline: "30 days",
-        effort: "Low",
-        impact: "Medium",
-        effortColor: "bg-green-100 text-green-700",
-        impactColor: "bg-yellow-100 text-yellow-700",
-      },
-      {
-        id: "B",
-        name: "Increase promotional frequency by 20% across modern trade",
-        timeline: "45 days",
-        effort: "Medium",
-        impact: "Medium",
-        effortColor: "bg-yellow-100 text-yellow-700",
-        impactColor: "bg-yellow-100 text-yellow-700",
-      },
-    ],
-  },
-  {
-    id: "messaging",
-    title: "3. MESSAGING",
-    icon: MessageSquare,
-    color: "bg-purple-50 border-purple-200",
-    headerColor: "bg-purple-600",
-    options: [
-      {
-        id: "A",
-        name: "Shift campaign narrative to 'real ingredients, real goodness'",
-        timeline: "21 days",
-        effort: "Low",
-        impact: "High",
-        effortColor: "bg-green-100 text-green-700",
-        impactColor: "bg-green-100 text-green-700",
-      },
-      {
-        id: "B",
-        name: "Counter artificial sweetener perception with transparent label campaign",
-        timeline: "30 days",
-        effort: "Medium",
-        impact: "High",
-        effortColor: "bg-yellow-100 text-yellow-700",
-        impactColor: "bg-green-100 text-green-700",
-      },
-    ],
-  },
-  {
-    id: "distribution",
-    title: "4. DISTRIBUTION",
-    icon: Truck,
-    color: "bg-orange-50 border-orange-200",
-    headerColor: "bg-orange-500",
-    options: [
-      {
-        id: "A",
-        name: "Secure premium shelf placement in top 500 modern trade outlets",
-        timeline: "60 days",
-        effort: "High",
-        impact: "High",
-        effortColor: "bg-red-100 text-red-700",
-        impactColor: "bg-green-100 text-green-700",
-      },
-      {
-        id: "B",
-        name: "Increase product visibility in health & wellness aisle",
-        timeline: "45 days",
-        effort: "Medium",
-        impact: "Medium",
-        effortColor: "bg-yellow-100 text-yellow-700",
-        impactColor: "bg-yellow-100 text-yellow-700",
-      },
-    ],
-  },
+type LucideIcon = typeof Package;
+
+const LEVER_META: Record<string, { icon: LucideIcon; color: string; headerColor: string }> = {
+  product:      { icon: Package,       color: "bg-blue-50 border-blue-200",    headerColor: "bg-blue-600"   },
+  pricing:      { icon: DollarSign,    color: "bg-green-50 border-green-200",  headerColor: "bg-green-600"  },
+  messaging:    { icon: MessageSquare, color: "bg-purple-50 border-purple-200", headerColor: "bg-purple-600" },
+  distribution: { icon: Truck,         color: "bg-orange-50 border-orange-200", headerColor: "bg-orange-500" },
+};
+
+const CAT_IMPACT: Partial<Record<string, number>> = {
+  pc: 85, confectionery: 79, beverage: 83, dairy: 76, fmcg: 78,
+};
+
+const OWNERS = [
+  { name: "Marketing Lead",  role: "Brand & Messaging",    initial: "M",  color: "bg-blue-600"   },
+  { name: "Product Lead",    role: "Innovation & R&D",      initial: "P",  color: "bg-purple-600" },
+  { name: "Sales Lead",      role: "Distribution & Trade",  initial: "S",  color: "bg-green-600"  },
+  { name: "Pricing Lead",    role: "Pricing & Promotions",  initial: "Pr", color: "bg-orange-600" },
 ];
 
-const ACTION_PLAN = [
-  {
-    period: "Week 1–2",
-    color: "bg-blue-600",
-    tasks: [
-      { task: "Evaluate promo elasticity across Tier 1 cities", team: "Pricing", owner: "Rahul M." },
-      { task: "Update campaign messaging to 'natural ingredients' angle", team: "Marketing", owner: "Priya S." },
-      { task: "Brief agency on counter-messaging for artificial sweetener risk", team: "Marketing", owner: "Priya S." },
-    ],
-  },
-  {
-    period: "Week 3–6",
-    color: "bg-purple-600",
-    tasks: [
-      { task: "Feasibility study on clean-label reformulation", team: "Product", owner: "Anita K." },
-      { task: "Identify top 500 modern trade targets for premium shelf placement", team: "Sales", owner: "Vikram D." },
-      { task: "Negotiate bundle pricing mechanics with key retailers", team: "Trade Marketing", owner: "Rahul M." },
-    ],
-  },
-  {
-    period: "Week 7–12",
-    color: "bg-green-600",
-    tasks: [
-      { task: "Launch reformulated or new low-sugar variant (pilot, 3 cities)", team: "Product", owner: "Anita K." },
-      { task: "Activate full campaign with updated positioning", team: "Marketing", owner: "Priya S." },
-      { task: "Review shelf-execution and distribution metrics", team: "Sales", owner: "Vikram D." },
-    ],
-  },
-];
+interface Props {
+  category: CategoryType;
+  config?: StoredConfig | null;
+}
 
-export default function ResponseAction() {
+export default function ResponseAction({ category, config }: Props) {
+  const hasDynamic = !!config?.category;
+  const catG = hasDynamic
+    ? detectCatGroup(config!.category)
+    : category === "pc" ? "pc" : "fmcg";
+
+  const fallback: StoredConfig = {
+    category:      category === "pc" ? "PC & Laptops" : "Snacks & Food",
+    subCategory:   category === "pc" ? "Touchscreen Laptops" : "Health & Wellness Snacks",
+    region:        "South Asia",
+    country:       "India",
+    competitors:   DEFAULT_COMPETITORS[catG],
+    intentFilters: ["Defend market share"],
+  };
+  const cfg = hasDynamic ? config! : fallback;
+
+  const levers     = buildResponseLevers(cfg);
+  const actionPlan = buildActionPlan(cfg);
+
+  const competitors  = cfg.competitors.length ? cfg.competitors : DEFAULT_COMPETITORS[catG];
+  const impactScore  = CAT_IMPACT[catG] ?? 80;
+  const sub          = cfg.subCategory || cfg.category;
+  const objectiveText = cfg.positioning?.trim()
+    ? cfg.positioning
+    : `Defend ${sub} segment against competitive threats from ${competitors.slice(0, 2).join(" and ")}`;
+
+  const evidence = competitors.slice(0, 5).map((c, i) => (
+    `${c} — competitive signal detected (Impact: ${impactScore - i * 4})`
+  ));
+
   const [expandedLevers, setExpandedLevers] = useState<string[]>(["product", "messaging"]);
-  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({
-    product: "B",
-    pricing: "A",
-    messaging: "A",
-    distribution: "A",
-  });
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(
+    { product: "B", pricing: "A", messaging: "A", distribution: "A" }
+  );
   const [approved, setApproved] = useState(false);
 
-  const toggleLever = (id: string) => {
-    setExpandedLevers((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+  const toggleLever = (id: string) =>
+    setExpandedLevers(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
     );
-  };
 
   return (
     <div className="space-y-5">
@@ -190,19 +98,14 @@ export default function ResponseAction() {
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-5 text-white">
         <div className="flex items-center gap-2 mb-2">
           <Target size={18} className="text-blue-200" />
-          <span className="text-xs font-bold uppercase tracking-wider text-blue-200">
-            Strategic Objective
-          </span>
+          <span className="text-xs font-bold uppercase tracking-wider text-blue-200">Strategic Objective</span>
         </div>
-        <h2 className="text-lg font-bold leading-snug">
-          &quot;Defend premium health-conscious segment in India against emerging low-sugar and
-          clean-label competitive threats&quot;
-        </h2>
+        <h2 className="text-lg font-bold leading-snug">&quot;{objectiveText}&quot;</h2>
         <div className="flex items-center gap-4 mt-3">
           {[
-            { label: "Impact Score", value: "82", icon: Zap },
-            { label: "Response Window", value: "30–90 days", icon: Clock },
-            { label: "Confidence", value: "High", icon: Target },
+            { label: "Impact Score",     value: String(impactScore), icon: Zap    },
+            { label: "Response Window",  value: "30–90 days",        icon: Clock  },
+            { label: "Confidence",       value: "High",              icon: Target },
           ].map(({ label, value, icon: Icon }) => (
             <div key={label} className="flex items-center gap-1.5 bg-white/15 rounded-lg px-3 py-1.5">
               <Icon size={13} className="text-blue-200" />
@@ -216,18 +119,23 @@ export default function ResponseAction() {
       {/* Response Levers */}
       <div className="space-y-3">
         <h3 className="font-bold text-gray-700 text-sm uppercase tracking-wide">Response Levers</h3>
-        {RESPONSE_LEVERS.map((lever) => {
-          const LeverIcon = lever.icon;
+        {levers.map(lever => {
+          const meta = LEVER_META[lever.id] ?? {
+            icon: Package,
+            color: "bg-gray-50 border-gray-200",
+            headerColor: "bg-gray-600",
+          };
+          const LeverIcon = meta.icon;
           const isExpanded = expandedLevers.includes(lever.id);
 
           return (
-            <div key={lever.id} className={`rounded-xl border ${lever.color} overflow-hidden`}>
+            <div key={lever.id} className={`rounded-xl border ${meta.color} overflow-hidden`}>
               <button
                 onClick={() => toggleLever(lever.id)}
                 className="w-full flex items-center justify-between px-5 py-3.5"
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg ${lever.headerColor} flex items-center justify-center`}>
+                  <div className={`w-8 h-8 rounded-lg ${meta.headerColor} flex items-center justify-center`}>
                     <LeverIcon size={15} className="text-white" />
                   </div>
                   <span className="font-bold text-gray-900 text-sm">{lever.title}</span>
@@ -235,18 +143,20 @@ export default function ResponseAction() {
                     {lever.options.length} option{lever.options.length > 1 ? "s" : ""}
                   </span>
                 </div>
-                {isExpanded ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+                {isExpanded
+                  ? <ChevronUp size={16} className="text-gray-400" />
+                  : <ChevronDown size={16} className="text-gray-400" />}
               </button>
 
               {isExpanded && (
                 <div className="px-5 pb-4 space-y-3 border-t border-gray-100 pt-3">
-                  {lever.options.map((opt) => {
+                  {lever.options.map(opt => {
                     const isSelected = selectedOptions[lever.id] === opt.id;
                     return (
                       <div
                         key={opt.id}
                         onClick={() =>
-                          setSelectedOptions((prev) => ({ ...prev, [lever.id]: opt.id }))
+                          setSelectedOptions(prev => ({ ...prev, [lever.id]: opt.id }))
                         }
                         className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
                           isSelected
@@ -254,37 +164,27 @@ export default function ResponseAction() {
                             : "border-transparent bg-white/60 hover:bg-white hover:border-gray-200"
                         }`}
                       >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-start gap-3 flex-1">
-                            <div
-                              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 ${
-                                isSelected ? "border-blue-600 bg-blue-600" : "border-gray-300 bg-white"
-                              }`}
-                            >
-                              {isSelected && (
-                                <div className="w-2.5 h-2.5 rounded-full bg-white" />
-                              )}
+                        <div className="flex items-start gap-3">
+                          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 ${
+                            isSelected ? "border-blue-600 bg-blue-600" : "border-gray-300 bg-white"
+                          }`}>
+                            {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
+                          </div>
+                          <div className="flex-1">
+                            <div className="text-sm font-semibold text-gray-900 mb-1.5">
+                              Option {opt.id}: {opt.name}
                             </div>
-                            <div>
-                              <div className="text-sm font-semibold text-gray-900 mb-1.5">
-                                Option {opt.id}: {opt.name}
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <div className="flex items-center gap-1 text-xs text-gray-500">
+                                <Calendar size={11} />
+                                <span>Timeline: <strong className="text-gray-700">{opt.timeline}</strong></span>
                               </div>
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <div className="flex items-center gap-1 text-xs text-gray-500">
-                                  <Calendar size={11} />
-                                  <span>Timeline: <strong className="text-gray-700">{opt.timeline}</strong></span>
-                                </div>
-                                <span
-                                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${opt.effortColor}`}
-                                >
-                                  Effort: {opt.effort}
-                                </span>
-                                <span
-                                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${opt.impactColor}`}
-                                >
-                                  Impact: {opt.impact}
-                                </span>
-                              </div>
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${opt.effortColor}`}>
+                                Effort: {opt.effort}
+                              </span>
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${opt.impactColor}`}>
+                                Impact: {opt.impact}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -304,9 +204,8 @@ export default function ResponseAction() {
           <Calendar size={16} className="text-blue-600" />
           <h3 className="font-bold text-gray-900 text-sm">Action Plan (Operational Mode)</h3>
         </div>
-
         <div className="space-y-4">
-          {ACTION_PLAN.map(({ period, color, tasks }) => (
+          {actionPlan.map(({ period, color, tasks }) => (
             <div key={period}>
               <div className="flex items-center gap-2 mb-2.5">
                 <div className={`w-2.5 h-2.5 rounded-full ${color}`} />
@@ -314,10 +213,7 @@ export default function ResponseAction() {
               </div>
               <div className="space-y-2 pl-5">
                 {tasks.map(({ task, team, owner }) => (
-                  <div
-                    key={task}
-                    className="flex items-start justify-between gap-3 p-3 bg-gray-50 rounded-xl"
-                  >
+                  <div key={task} className="flex items-start justify-between gap-3 p-3 bg-gray-50 rounded-xl">
                     <div className="flex items-start gap-2">
                       <div className="w-1.5 h-1.5 rounded-full bg-gray-400 mt-1.5 shrink-0" />
                       <span className="text-sm text-gray-700">{task}</span>
@@ -337,19 +233,14 @@ export default function ResponseAction() {
         </div>
       </div>
 
-      {/* Owners Summary */}
+      {/* Owners */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
         <div className="flex items-center gap-2 mb-4">
           <User size={15} className="text-gray-500" />
           <h3 className="font-bold text-gray-900 text-sm">Owners</h3>
         </div>
         <div className="grid grid-cols-4 gap-3">
-          {[
-            { name: "Rahul M.", role: "Pricing & Trade Marketing", initial: "R", color: "bg-blue-600" },
-            { name: "Priya S.", role: "Marketing & Messaging", initial: "P", color: "bg-purple-600" },
-            { name: "Anita K.", role: "Product & R&D", initial: "A", color: "bg-green-600" },
-            { name: "Vikram D.", role: "Sales & Distribution", initial: "V", color: "bg-orange-600" },
-          ].map(({ name, role, initial, color }) => (
+          {OWNERS.map(({ name, role, initial, color }) => (
             <div key={name} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
               <div className={`w-9 h-9 rounded-full ${color} flex items-center justify-center shrink-0`}>
                 <span className="text-white font-bold text-sm">{initial}</span>
@@ -368,22 +259,13 @@ export default function ResponseAction() {
         <div className="flex items-center gap-2 mb-3">
           <Link size={14} className="text-gray-500" />
           <span className="text-xs font-bold text-gray-600 uppercase tracking-wide">
-            All actions linked to impact drivers & evidence signals
+            All actions linked to impact drivers &amp; evidence signals
           </span>
         </div>
         <div className="flex flex-wrap gap-2">
-          {[
-            "Pepsi low-sugar launch (Impact: 82)",
-            "ITC promo surge (Impact: 68)",
-            "Nestlé clean-label patent (Impact: 71)",
-            "Britannia rice cracker (Impact: 73)",
-            "Mondelez 'natural' messaging (Impact: 66)",
-          ].map((evidence) => (
-            <span
-              key={evidence}
-              className="text-xs bg-white border border-gray-200 px-2.5 py-1 rounded-lg text-gray-600 font-medium"
-            >
-              {evidence}
+          {evidence.map(e => (
+            <span key={e} className="text-xs bg-white border border-gray-200 px-2.5 py-1 rounded-lg text-gray-600 font-medium">
+              {e}
             </span>
           ))}
         </div>
@@ -407,9 +289,7 @@ export default function ResponseAction() {
           Edit
         </button>
         {approved && (
-          <span className="text-sm text-green-600 font-medium">
-            Plan approved and ready for execution.
-          </span>
+          <span className="text-sm text-green-600 font-medium">Plan approved and ready for execution.</span>
         )}
       </div>
     </div>

@@ -9,9 +9,9 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        sidebar: "#162057",
-        "sidebar-active": "#2563eb",
-        brand: "#2563eb",
+        sidebar: "#0D1857",
+        "sidebar-active": "#7300FF",
+        brand: "#7300FF",
       },
     },
   },
